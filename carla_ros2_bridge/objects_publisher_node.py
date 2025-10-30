@@ -50,6 +50,7 @@ class ObjectsPublisherNode(Node):
         self.declare_parameter('carla_host', 'localhost')
         self.declare_parameter('carla_port', 2000)
         self.declare_parameter('ego_vehicle_role_name', 'hero')
+        self.declare_parameter('ego_vehicle_ros_name', 'ego_vehicle')
         self.declare_parameter('update_frequency', 10.0) # Hz
         self.declare_parameter('carla_timeout', 10.0)
         self.declare_parameter('world_frame_id', 'map')
@@ -58,8 +59,9 @@ class ObjectsPublisherNode(Node):
         # Get parameters directly - this is safe because defaults are provided
         self.host = self.get_parameter('carla_host').get_parameter_value().string_value
         self.port = self.get_parameter('carla_port').get_parameter_value().integer_value
-        self.role_name = self.get_parameter('ego_vehicle_role_name').get_parameter_value().string_value # Used for topic namespacing
-        self.ego_vehicle_role_name_to_exclude = self.role_name # Assuming it's the same role_name for exclusion
+        self.role_name = self.get_parameter('ego_vehicle_role_name').get_parameter_value().string_value
+        self.ros_name = self.get_parameter('ego_vehicle_ros_name').get_parameter_value().string_value
+        self.ego_vehicle_role_name_to_exclude = self.role_name # Use role_name for exclusion in CARLA world
         self.update_frequency = self.get_parameter('update_frequency').get_parameter_value().double_value
         self.carla_timeout = self.get_parameter('carla_timeout').get_parameter_value().double_value
         self.world_frame_id = self.get_parameter('world_frame_id').get_parameter_value().string_value
@@ -79,7 +81,7 @@ class ObjectsPublisherNode(Node):
 
         self.publisher_ = self.create_publisher(
             ObjectArray,
-            f'/carla/{self.role_name}/objects', 
+            f'/carla/{self.ros_name}/objects', 
             objects_qos_profile
         )
 
@@ -92,7 +94,7 @@ class ObjectsPublisherNode(Node):
             self.get_logger().warn(f"Timer not started for objects. World: {self.world}, Update Freq: {self.update_frequency}")
 
         self.get_logger().info(f"Objects Publisher for reference role '{self.role_name}' initialized.")
-        self.get_logger().info(f"Publishing to /carla/{self.role_name}/objects at {self.update_frequency} Hz.")
+        self.get_logger().info(f"Publishing to /carla/{self.ros_name}/objects at {self.update_frequency} Hz.")
 
     def _connect_to_carla_and_setup_world(self) -> bool:
         """Establish connection and set up CARLA world for synchronous mode if needed."""
@@ -139,7 +141,7 @@ class ObjectsPublisherNode(Node):
         for actor in self.world.get_actors():
              if actor.attributes.get('role_name') == self.ego_vehicle_role_name_to_exclude:
                 self.ego_vehicle_id = actor.id
-                self.get_logger().info(f"Ego vehicle '{self.ego_vehicle_role_name_to_exclude}' with ID {self.ego_vehicle_id} will be excluded from object list.")
+                self.get_logger().info(f"Ego vehicle with role_name '{self.ego_vehicle_role_name_to_exclude}' (ID {self.ego_vehicle_id}) will be excluded from object list.")
                 return # Found it
         self.get_logger().warn(f"Ego vehicle with role_name '{self.ego_vehicle_role_name_to_exclude}' not found to exclude.")
 

@@ -25,7 +25,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'ego_vehicle_role_name',
             default_value='hero',
-            description='Role name of the ego vehicle in CARLA.'
+            description='CARLA role_name attribute of the ego vehicle (currently must be "hero" due to CARLA 0.10.0 ROS2 bug).'
+        )
+    )
+    declared_args.append(
+        DeclareLaunchArgument(
+            'ego_vehicle_ros_name',
+            default_value='ego_vehicle',
+            description='ROS name for topic namespacing (e.g., /carla/{ros_name}/odometry).'
         )
     )
     declared_args.append(
@@ -40,6 +47,7 @@ def generate_launch_description():
     carla_host = LaunchConfiguration('carla_host')
     carla_port = LaunchConfiguration('carla_port')
     ego_vehicle_role_name = LaunchConfiguration('ego_vehicle_role_name')
+    ego_vehicle_ros_name = LaunchConfiguration('ego_vehicle_ros_name')
     carla_timeout = LaunchConfiguration('carla_timeout')
 
     # nodes
@@ -52,6 +60,7 @@ def generate_launch_description():
             'carla_host': carla_host,
             'carla_port': carla_port,
             'ego_vehicle_role_name': ego_vehicle_role_name,
+            'ego_vehicle_ros_name': ego_vehicle_ros_name,
             'update_frequency': 0.0, # Only publishes once for static info
             'carla_timeout': carla_timeout
         }]
@@ -66,10 +75,11 @@ def generate_launch_description():
             'carla_host': carla_host,
             'carla_port': carla_port,
             'ego_vehicle_role_name': ego_vehicle_role_name,
+            'ego_vehicle_ros_name': ego_vehicle_ros_name,
             'update_frequency': 20.0,
             'carla_timeout': carla_timeout,
             'world_frame_id': 'map',
-            'child_frame_id_prefix': '' # Results in child_frame_id being 'hero'
+            'child_frame_id_prefix': '' # Results in child_frame_id being the ros_name
         }]
     )
 
@@ -82,6 +92,7 @@ def generate_launch_description():
             'carla_host': carla_host,
             'carla_port': carla_port,
             'ego_vehicle_role_name': ego_vehicle_role_name,
+            'ego_vehicle_ros_name': ego_vehicle_ros_name,
             'update_frequency': 20.0,
             'carla_timeout': carla_timeout
         }]
@@ -95,7 +106,8 @@ def generate_launch_description():
         parameters=[{
             'carla_host': carla_host,
             'carla_port': carla_port,
-            'ego_vehicle_role_name': ego_vehicle_role_name, # Used for topic namespacing and exclusion
+            'ego_vehicle_role_name': ego_vehicle_role_name,
+            'ego_vehicle_ros_name': ego_vehicle_ros_name,
             'update_frequency': 10.0,
             'carla_timeout': carla_timeout,
             'world_frame_id': 'map'

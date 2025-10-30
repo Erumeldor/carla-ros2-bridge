@@ -51,6 +51,7 @@ class VehicleInfoPublisherNode(Node):
         self.declare_parameter('carla_host', 'localhost')
         self.declare_parameter('carla_port', 2000)
         self.declare_parameter('ego_vehicle_role_name', 'hero')
+        self.declare_parameter('ego_vehicle_ros_name', 'ego_vehicle')
         self.declare_parameter('update_frequency', 0.0) # Hz; <= 0.0 means publish once
         self.declare_parameter('carla_timeout', 10.0)
 
@@ -58,6 +59,7 @@ class VehicleInfoPublisherNode(Node):
         self.host = self.get_parameter('carla_host').get_parameter_value().string_value
         self.port = self.get_parameter('carla_port').get_parameter_value().integer_value
         self.role_name = self.get_parameter('ego_vehicle_role_name').get_parameter_value().string_value
+        self.ros_name = self.get_parameter('ego_vehicle_ros_name').get_parameter_value().string_value
         self.update_frequency = self.get_parameter('update_frequency').get_parameter_value().double_value
         self.carla_timeout = self.get_parameter('carla_timeout').get_parameter_value().double_value
         
@@ -76,7 +78,7 @@ class VehicleInfoPublisherNode(Node):
 
         self.publisher_ = self.create_publisher(
             CarlaEgoVehicleInfo,
-            f'/carla/{self.role_name}/vehicle_info',
+            f'/carla/{self.ros_name}/vehicle_info',
             latched_qos_profile
         )
 
@@ -97,7 +99,7 @@ class VehicleInfoPublisherNode(Node):
         self.timer = self.create_timer(timer_period, self._attempt_publish_vehicle_info)
 
         self.get_logger().info(f"Vehicle Info Publisher for role '{self.role_name}' initialized.")
-        self.get_logger().info(f"Publishing to /carla/{self.role_name}/vehicle_info")
+        self.get_logger().info(f"Publishing to /carla/{self.ros_name}/vehicle_info")
         if self.update_frequency > 0:
             self.get_logger().info(f"Configured publish rate: {self.update_frequency} Hz.")
         else:

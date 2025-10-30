@@ -9,19 +9,19 @@ This bridge is intended to provide topics similar to those from older CARLA ROS 
 Currently, the bridge provides the following publishers:
 
 * **Vehicle Information:** Publishes static physical and descriptive information about the ego vehicle.
-    * Topic: `/carla/{role_name}/vehicle_info`
+    * Topic: `/carla/{ros_name}/vehicle_info`
     * Message Type: `carla_msgs/msg/CarlaEgoVehicleInfo`
     * Node: `vehicle_info_publisher_node`
 * **Vehicle Status:** Publishes dynamic status of the ego vehicle (speed, acceleration, orientation, control inputs).
-    * Topic: `/carla/{role_name}/vehicle_status`
+    * Topic: `/carla/{ros_name}/vehicle_status`
     * Message Type: `carla_msgs/msg/CarlaEgoVehicleStatus`
     * Node: `vehicle_status_publisher_node`
 * **Odometry:** Publishes the ego vehicle's odometry (pose and twist in the world frame).
-    * Topic: `/carla/{role_name}/odometry`
+    * Topic: `/carla/{ros_name}/odometry`
     * Message Type: `nav_msgs/msg/Odometry`
     * Node: `odometry_publisher_node`
 * **Objects:** Publishes an array of detected dynamic objects (other vehicles, pedestrians) in the world.
-    * Topic: `/carla/{role_name}/objects`
+    * Topic: `/carla/{ros_name}/objects`
     * Message Type: `derived_object_msgs/msg/ObjectArray`
     * Node: `objects_publisher_node`
 
@@ -82,16 +82,18 @@ Currently, the bridge provides the following publishers:
     ```
 
 2.  **Spawn Ego Vehicle:**
-    Ensure a vehicle with the configured `ego_vehicle_role_name` (default: "hero") is spawned in the CARLA simulation. This can be done using a CARLA client script (e.g., CARLA's built-in `PythonAPI/examples/ros2/ros2_native.py` with a suitable JSON configuration).
+    Ensure a vehicle with the configured `ego_vehicle_role_name` (default: "hero") is spawned in the CARLA simulation. This can be done using a CARLA client script.
+    
+    **Note:** Due to a bug in CARLA 0.10.0's ROS2 integration, the `role_name` attribute must currently be set to "hero" if you want to control the vehicle via ros-topics.
 
 3.  **Launch the Bridge Nodes:**
     A basic launch file is provided to start all publisher nodes:
     ```bash
-    ros2 launch carla_ros2_bridge carla_bridge_launch.py ego_vehicle_role_name:=hero
+    ros2 launch carla_ros2_bridge carla_bridge_launch.py ego_vehicle_role_name:=hero ego_vehicle_ros_name:=ego_vehicle
     ```
     You can also run nodes individually if needed:
     ```bash
-    ros2 run carla_ros2_bridge odometry_publisher_node --ros-args -p ego_vehicle_role_name:=hero
+    ros2 run carla_ros2_bridge odometry_publisher_node --ros-args -p ego_vehicle_role_name:=hero -p ego_vehicle_ros_name:=ego_vehicle
     ```
 
 ## Parameters
@@ -100,7 +102,8 @@ Each publisher node accepts the following common ROS 2 parameters:
 
 * `carla_host` (string, default: "localhost"): Hostname of the CARLA server.
 * `carla_port` (int, default: 2000): TCP port of the CARLA server.
-* `ego_vehicle_role_name` (string, default: "hero"): The `role_name` attribute of the ego vehicle in CARLA. Used for namespacing topics and identifying the primary vehicle.
+* `ego_vehicle_role_name` (string, default: "hero"): The `role_name` attribute of the ego vehicle in CARLA. This is used to identify the vehicle in the CARLA world.
+* `ego_vehicle_ros_name` (string, default: "ego_vehicle"): The ROS name used for topic namespacing (e.g., `/carla/{ros_name}/odometry`).
 * `update_frequency` (double, default varies per node): Publishing frequency in Hz. For `vehicle_info_publisher_node`, a value <= 0.0 means publish once.
 * `carla_timeout` (double, default: 10.0): Timeout for connecting to the CARLA server in seconds.
 

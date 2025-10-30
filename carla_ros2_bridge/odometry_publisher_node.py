@@ -48,6 +48,7 @@ class OdometryPublisherNode(Node):
         self.declare_parameter('carla_host', 'localhost')
         self.declare_parameter('carla_port', 2000)
         self.declare_parameter('ego_vehicle_role_name', 'hero')
+        self.declare_parameter('ego_vehicle_ros_name', 'ego_vehicle')
         self.declare_parameter('update_frequency', 20.0) # Hz
         self.declare_parameter('carla_timeout', 10.0)
         self.declare_parameter('world_frame_id', 'map') # Typically 'map' or 'odom'
@@ -57,11 +58,12 @@ class OdometryPublisherNode(Node):
         self.host = self.get_parameter('carla_host').get_parameter_value().string_value
         self.port = self.get_parameter('carla_port').get_parameter_value().integer_value
         self.role_name = self.get_parameter('ego_vehicle_role_name').get_parameter_value().string_value
+        self.ros_name = self.get_parameter('ego_vehicle_ros_name').get_parameter_value().string_value
         self.update_frequency = self.get_parameter('update_frequency').get_parameter_value().double_value
         self.carla_timeout = self.get_parameter('carla_timeout').get_parameter_value().double_value
         self.world_frame_id = self.get_parameter('world_frame_id').get_parameter_value().string_value
         child_frame_id_prefix = self.get_parameter('child_frame_id_prefix').get_parameter_value().string_value
-        self.child_frame_id = child_frame_id_prefix + self.role_name if child_frame_id_prefix else self.role_name
+        self.child_frame_id = child_frame_id_prefix + self.ros_name if child_frame_id_prefix else self.ros_name
         
         self.client: carla.Client | None = None
         self.world: carla.World | None = None
@@ -77,7 +79,7 @@ class OdometryPublisherNode(Node):
 
         self.publisher_ = self.create_publisher(
             Odometry,
-            f'/carla/{self.role_name}/odometry',
+            f'/carla/{self.ros_name}/odometry',
             odometry_qos_profile
         )
 
@@ -97,7 +99,7 @@ class OdometryPublisherNode(Node):
                                    f"Update Freq: {self.update_frequency}")
 
         self.get_logger().info(f"Odometry Publisher for role '{self.role_name}' initialized (Passive CARLA Mode).")
-        self.get_logger().info(f"Publishing to /carla/{self.role_name}/odometry at {self.update_frequency} Hz.")
+        self.get_logger().info(f"Publishing to /carla/{self.ros_name}/odometry at {self.update_frequency} Hz.")
         self.get_logger().info(f"Odometry frame_id: '{self.world_frame_id}', child_frame_id: '{self.child_frame_id}'")
 
     def _find_ego_vehicle(self) -> bool:

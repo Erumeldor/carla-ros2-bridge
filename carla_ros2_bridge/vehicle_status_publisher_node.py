@@ -51,6 +51,7 @@ class VehicleStatusPublisherNode(Node):
         self.declare_parameter('carla_host', 'localhost')
         self.declare_parameter('carla_port', 2000)
         self.declare_parameter('ego_vehicle_role_name', 'hero')
+        self.declare_parameter('ego_vehicle_ros_name', 'ego_vehicle')
         self.declare_parameter('update_frequency', 20.0) # Hz
         self.declare_parameter('carla_timeout', 10.0)
 
@@ -58,6 +59,7 @@ class VehicleStatusPublisherNode(Node):
         self.host = self.get_parameter('carla_host').get_parameter_value().string_value
         self.port = self.get_parameter('carla_port').get_parameter_value().integer_value
         self.role_name = self.get_parameter('ego_vehicle_role_name').get_parameter_value().string_value
+        self.ros_name = self.get_parameter('ego_vehicle_ros_name').get_parameter_value().string_value
         self.update_frequency = self.get_parameter('update_frequency').get_parameter_value().double_value
         self.carla_timeout = self.get_parameter('carla_timeout').get_parameter_value().double_value
         
@@ -75,7 +77,7 @@ class VehicleStatusPublisherNode(Node):
 
         self.publisher_ = self.create_publisher(
             CarlaEgoVehicleStatus,
-            f'/carla/{self.role_name}/vehicle_status',
+            f'/carla/{self.ros_name}/vehicle_status',
             status_qos_profile
         )
 
@@ -95,7 +97,7 @@ class VehicleStatusPublisherNode(Node):
                                    f"Update Freq: {self.update_frequency}")
 
         self.get_logger().info(f"Vehicle Status Publisher for role '{self.role_name}' initialized (Passive CARLA Mode).")
-        self.get_logger().info(f"Publishing to /carla/{self.role_name}/vehicle_status at {self.update_frequency} Hz.")
+        self.get_logger().info(f"Publishing to /carla/{self.ros_name}/vehicle_status at {self.update_frequency} Hz.")
 
     def _find_ego_vehicle(self) -> bool:
         """
@@ -144,7 +146,7 @@ class VehicleStatusPublisherNode(Node):
         try:
             status_msg = CarlaEgoVehicleStatus()
             status_msg.header.stamp = self.get_clock().now().to_msg()
-            status_msg.header.frame_id = self.role_name # Or a more specific frame like 'hero/base_link'
+            status_msg.header.frame_id = self.ros_name # Or a more specific frame like 'hero/base_link'
 
             # Velocity (scalar magnitude)
             velocity_vector = self.ego_vehicle.get_velocity() # carla.Vector3D m/s
