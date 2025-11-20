@@ -163,7 +163,8 @@ class OdometryPublisherNode(Node):
             # Populate Twist
             ros_twist = transforms.carla_velocity_to_ros_twist(
                 carla_linear_velocity=actor_linear_velocity,
-                carla_angular_velocity=actor_angular_velocity
+                carla_angular_velocity=actor_angular_velocity,
+                carla_rotation=actor_transform.rotation
                 # The carla_velocity_to_ros_twist function handles necessary frame
                 # and unit conversions (e.g., angular velocity from deg/s to rad/s and axis mapping).
             )
