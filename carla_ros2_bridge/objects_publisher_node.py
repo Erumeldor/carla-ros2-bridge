@@ -69,7 +69,6 @@ class ObjectsPublisherNode(Node):
         self.client = None
         self.world = None
         self.ego_vehicle_id = -1 # To store the ID of the ego vehicle to exclude it
-        self.synchronous_mode_settings = None
 
         # QoS for objects: Typically Reliable, Volatile.
         objects_qos_profile = QoSProfile(
@@ -97,37 +96,25 @@ class ObjectsPublisherNode(Node):
         self.get_logger().info(f"Publishing to /carla/{self.ros_name}/objects at {self.update_frequency} Hz.")
 
     def _connect_to_carla_and_setup_world(self) -> bool:
-        """Establish connection and set up CARLA world for synchronous mode if needed."""
+        """Establish connection to CARLA world (passive - no settings changes)."""
         self.get_logger().info(f"Attempting to connect to CARLA at {self.host}:{self.port}...")
         try:
             self.client = carla.Client(self.host, self.port)
             self.client.set_timeout(self.carla_timeout)
             self.world = self.client.get_world()
-            self.world.get_snapshot() 
-
-            self.synchronous_mode_settings = self.world.get_settings()
-            settings = self.world.get_settings()
-            if self.update_frequency > 0:
-                settings.synchronous_mode = True
-                settings.fixed_delta_seconds = 1.0 / self.update_frequency
-            else:
-                settings.synchronous_mode = False
-                settings.fixed_delta_seconds = None
-            self.world.apply_settings(settings)
-            self.get_logger().info(f"CARLA world synchronous_mode: {settings.synchronous_mode}, fixed_delta_seconds: {settings.fixed_delta_seconds}")
+            self.world.get_snapshot()  # Verify connection works
             
-            traffic_manager = self.client.get_trafficmanager() # Add self.client.get_tm_port() if needed
-            traffic_manager.set_synchronous_mode(True)
-            
-            self.get_logger().info("Successfully connected to CARLA server and configured world settings for Objects Publisher.")
+            self.get_logger().info("Successfully connected to CARLA server for Objects Publisher.")
             return True
         except RuntimeError as e:
-            self.get_logger().error(f"Failed to connect to CARLA or setup world for Objects Publisher: {e}.")
-            self.world = None; self.client = None
+            self.get_logger().error(f"Failed to connect to CARLA for Objects Publisher: {e}.")
+            self.world = None
+            self.client = None
             return False
         except Exception as e:
-            self.get_logger().error(f"Unexpected error during CARLA connection/setup for Objects Publisher: {e}")
-            self.world = None; self.client = None
+            self.get_logger().error(f"Unexpected error during CARLA connection for Objects Publisher: {e}")
+            self.world = None
+            self.client = None
             return False
 
     def _find_and_store_ego_vehicle_id(self):
@@ -150,17 +137,10 @@ class ObjectsPublisherNode(Node):
         """Fetches data about other vehicles and pedestrians and publishes them."""
         if not self.world:
             self.get_logger().warn("No CARLA world, skipping objects publish.")
-            if not self._connect_to_carla_and_setup_world(): return
-        
-        if self.synchronous_mode_settings and self.synchronous_mode_settings.synchronous_mode:
-            try:
-                self.world.tick()
-            except RuntimeError as e:
-                self.get_logger().warn(f"RuntimeError during world.tick() for objects: {e}.")
-                self.ego_vehicle_id = -1 
+            if not self._connect_to_carla_and_setup_world():
                 return
 
-        if self.ego_vehicle_id == -1: # Attempt to find it if not yet found
+        if self.ego_vehicle_id == -1:  # Attempt to find it if not yet found
             self._find_and_store_ego_vehicle_id()
 
         object_array_msg = ObjectArray()
@@ -222,23 +202,11 @@ class ObjectsPublisherNode(Node):
         self.publisher_.publish(object_array_msg)
         self.get_logger().debug(f"Published {len(object_array_msg.objects)} objects.")
 
-
-    def restore_world_settings(self):
-        """Restores original CARLA world settings if they were changed."""
-        if self.synchronous_mode_settings and self.world:
-            self.get_logger().info("Attempting to restore original CARLA world settings (from objects publisher)...")
-            try:
-                self.world.apply_settings(self.synchronous_mode_settings)
-                self.get_logger().info("Original CARLA world settings restored (from objects publisher).")
-            except RuntimeError as e:
-                self.get_logger().error(f"Failed to restore CARLA world settings (from objects publisher): {e}")
-
     def destroy_node(self):
         """Node cleanup."""
         self.get_logger().info("Shutting down Objects Publisher Node...")
         if self.timer and not self.timer.is_canceled():
             self.timer.cancel()
-        self.restore_world_settings()
         super().destroy_node()
 
 
